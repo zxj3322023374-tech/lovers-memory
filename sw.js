@@ -1,12 +1,12 @@
 const CACHE = "lovers-memory-v1";
 const URLS = [
-  "/lovers-memory/",
-  "/lovers-memory/index.html",
-  "/lovers-memory/css/style.css",
-  "/lovers-memory/js/app.js",
-  "/lovers-memory/manifest.json",
-  "/lovers-memory/icons/icon-192.png",
-  "/lovers-memory/icons/icon-512.png"
+  "./",
+  "./index.html",
+  "./css/style.css",
+  "./js/app.js",
+  "./manifest.json",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
 ];
 
 self.addEventListener("install", e => {

@@ -15,7 +15,9 @@
   <!-- ===== Hero Cover ===== -->
   <header id="hero">
     <div class="hero-bg" id="heroBg">
+      <video class="hero-video" id="heroVideo" loop muted playsinline></video>
       <div class="hero-overlay"></div>
+      <div class="hero-bg-hint" id="heroBgHint">双击更换背景（图片/视频）</div>
     </div>
     <div class="hero-content">
      <div class="hero-names" id="heroNames">
@@ -29,6 +31,12 @@
         <span class="counter-label">天</span>
       </div>
       <div class="hero-anniv" id="annivDisplay">2025-01-01</div>
+      <div class="hero-countdown" id="countdownArea">
+        <div class="countdown-label">下一个纪念日</div>
+        <div class="countdown-name" id="countdownName">一周年</div>
+        <div class="countdown-days" id="countdownDays">365</div>
+        <div class="countdown-sub" id="countdownSub">天后到来</div>
+      </div>
     </div>
     <div class="scroll-hint">&#x2193;</div>
   </header>
@@ -52,8 +60,8 @@
     </div>
     <div class="photo-grid" id="photoGrid">
       <div class="empty-state" id="photoEmpty">
-        <div class="empty-state-icon">&#x2500;</div>
-        <p>还没有照片，点击上方按钮上传第一张吧</p>
+        <div class="empty-state-icon">📷</div>
+        <p>还没有照片，点击上方按钮或拖拽图片到此处上传吧</p>
       </div>
     </div>
   </section>

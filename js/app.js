@@ -99,14 +99,57 @@ function compressImage(file, maxW = 800, quality = 0.8) {
   });
 }
 
+// ===== Drag & Drop Setup =====
+let dragDropInitialized = false;
+
+function setupDragDrop() {
+  if (dragDropInitialized) return;
+  dragDropInitialized = true;
+  const grid = document.getElementById("photoGrid");
+
+  grid.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    grid.classList.add("drag-over");
+  });
+
+  grid.addEventListener("dragenter", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    grid.classList.add("drag-over");
+  });
+
+  grid.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only remove class if leaving the grid itself (not child elements)
+    if (e.target === grid) {
+      grid.classList.remove("drag-over");
+    }
+  });
+
+  grid.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    grid.classList.remove("drag-over");
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+    for (const file of files) {
+      const imageData = await compressImage(file);
+      await dbPut("photos", { imageData, caption: "", timestamp: Date.now() });
+    }
+    renderPhotos();
+  });
+}
+
 // ===== Render =====
 async function renderPhotos() {
+  setupDragDrop();
   const photos = await dbGetAll("photos");
   photos.sort((a, b) => b.timestamp - a.timestamp);
   const grid = document.getElementById("photoGrid");
-  const empty = document.getElementById("photoEmpty");
   if (photos.length === 0) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">-</div><p>还没有照片，点击上方按钮上传第一张吧</p></div>';
+    grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📷</div><p>还没有照片，点击上方按钮或拖拽图片到此处上传吧</p></div>';
     return;
   }
   grid.innerHTML = photos.map(p => `
@@ -174,6 +217,20 @@ async function renderMessages() {
   });
 }
 
+// ===== Number to Chinese =====
+function numToChinese(n) {
+  const digits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+  if (n < 0) return "";
+  if (n < 10) return digits[n];
+  if (n < 20) return "十" + (n % 10 === 0 ? "" : digits[n % 10]);
+  if (n < 100) {
+    const tens = Math.floor(n / 10);
+    const ones = n % 10;
+    return digits[tens] + "十" + (ones === 0 ? "" : digits[ones]);
+  }
+  return String(n);
+}
+
 async function updateHero() {
   const s = await loadSettings();
   document.getElementById("name1").textContent = s.name1 || "你";
@@ -185,13 +242,107 @@ async function updateHero() {
   if (s.anniv) {
     const diff = Math.floor((Date.now() - new Date(s.anniv).getTime()) / 86400000);
     document.getElementById("daysCount").textContent = Math.max(0, diff + 1);
+
+    // Calculate next anniversary countdown
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const annivDate = new Date(s.anniv);
+    const annivMonth = annivDate.getMonth();
+    const annivDay = annivDate.getDate();
+    const annivYear = annivDate.getFullYear();
+
+    const thisYearAnniv = new Date(today.getFullYear(), annivMonth, annivDay);
+    thisYearAnniv.setHours(0, 0, 0, 0);
+
+    let yearCount, targetDate, countdownDays;
+
+    if (thisYearAnniv.getTime() === today.getTime()) {
+      // Today is the anniversary!
+      yearCount = today.getFullYear() - annivYear;
+      countdownDays = 0;
+      targetDate = today;
+    } else if (thisYearAnniv > today) {
+      // This year's anniversary hasn't passed yet
+      yearCount = today.getFullYear() - annivYear;
+      targetDate = thisYearAnniv;
+      countdownDays = Math.floor((thisYearAnniv - today) / 86400000);
+    } else {
+      // This year's anniversary has passed, show next year's
+      yearCount = today.getFullYear() - annivYear + 1;
+      const nextYearAnniv = new Date(today.getFullYear() + 1, annivMonth, annivDay);
+      nextYearAnniv.setHours(0, 0, 0, 0);
+      targetDate = nextYearAnniv;
+      countdownDays = Math.floor((nextYearAnniv - today) / 86400000);
+    }
+
+    const countdownArea = document.getElementById("countdownArea");
+    const countdownName = document.getElementById("countdownName");
+    const countdownDaysEl = document.getElementById("countdownDays");
+    const countdownSub = document.getElementById("countdownSub");
+
+    if (countdownDays === 0) {
+      countdownName.textContent = "今天";
+      countdownDaysEl.textContent = "是" + numToChinese(yearCount) + "周年纪念日！💕";
+      countdownSub.textContent = "";
+      countdownArea.style.display = "block";
+    } else {
+      // Check for special dates (Valentine's Day, etc.)
+      const specialDates = [
+        { month: 1, day: 14, name: "情人节" },
+        { month: 2, day: 14, name: "白色情人节" },
+        { month: 4, day: 1, name: "愚人节" },
+        { month: 11, day: 24, name: "平安夜" },
+        { month: 11, day: 25, name: "圣诞节" },
+        { month: 11, day: 31, name: "跨年夜" }
+      ];
+      let specialName = null;
+
+      for (const sp of specialDates) {
+        const spDate = new Date(today.getFullYear(), sp.month, sp.day);
+        spDate.setHours(0, 0, 0, 0);
+        if (spDate.getTime() === targetDate.getTime()) {
+          specialName = sp.name;
+          break;
+        }
+        // If this year's special date passed, check next year
+        if (spDate < today) {
+          const nextSpDate = new Date(today.getFullYear() + 1, sp.month, sp.day);
+          nextSpDate.setHours(0, 0, 0, 0);
+          if (nextSpDate.getTime() === targetDate.getTime()) {
+            specialName = sp.name;
+            break;
+          }
+        }
+      }
+
+      if (specialName) {
+        countdownName.textContent = numToChinese(yearCount) + "周年 / " + specialName;
+      } else {
+        countdownName.textContent = numToChinese(yearCount) + "周年纪念日";
+      }
+      countdownDaysEl.textContent = countdownDays;
+      countdownSub.textContent = "天后到来";
+      countdownArea.style.display = "block";
+    }
   } else {
     document.getElementById("daysCount").textContent = "0";
+    document.getElementById("countdownArea").style.display = "none";
   }
   // Hero background
-  if (s.heroBg) {
-    document.getElementById("heroBg").classList.add("has-image");
-    document.getElementById("heroBg").style.backgroundImage = `url(${s.heroBg})`;
+  const heroBg = document.getElementById("heroBg");
+  const heroVideo = document.getElementById("heroVideo");
+  // Reset
+  heroBg.classList.remove("has-image");
+  heroBg.style.backgroundImage = "";
+  heroVideo.classList.remove("show");
+  heroVideo.src = "";
+
+  if (s.heroBgType === "video" && s.heroBg) {
+    heroVideo.src = s.heroBg;
+    heroVideo.classList.add("show");
+  } else if (s.heroBg) {
+    heroBg.classList.add("has-image");
+    heroBg.style.backgroundImage = `url(${s.heroBg})`;
   }
 }
 
@@ -354,19 +505,47 @@ document.getElementById("saveSettings").addEventListener("click", async () => {
   alert("设置已保存");
 });
 
-// ===== Hero BG Upload =====
+// ===== Hero BG Upload (double-click for image/video) =====
 document.getElementById("heroBg").addEventListener("dblclick", () => {
   const input = document.createElement("input");
   input.type = "file";
-  input.accept = "image/*";
+  input.accept = "image/*,video/*";
   input.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const imgData = await compressImage(file, 1600, 0.7);
-    await saveSetting("heroBg", imgData);
-    updateHero();
+    const isVideo = file.type.startsWith("video/");
+
+    if (isVideo) {
+      // Limit video to 20MB
+      if (file.size > 20 * 1024 * 1024) {
+        alert("视频不能超过20MB，请压缩后再上传");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        await saveSetting("heroBgType", "video");
+        await saveSetting("heroBg", ev.target.result);
+        updateHero();
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const imgData = await compressImage(file, 1600, 0.7);
+      await saveSetting("heroBgType", "image");
+      await saveSetting("heroBg", imgData);
+      updateHero();
+    }
   };
   input.click();
+});
+
+// Right-click to remove background
+document.getElementById("heroBg").addEventListener("contextmenu", async (e) => {
+  e.preventDefault();
+  if (confirm("要移除当前背景吗？")) {
+    await saveSetting("heroBg", "");
+    await saveSetting("heroBgType", "");
+    updateHero();
+  }
 });
 
 // ===== Export / Clear =====
