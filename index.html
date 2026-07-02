@@ -118,6 +118,24 @@
       <button class="save-btn" id="saveSettings">保存设置</button>
     </div>
     <div class="settings-card" style="margin-top:16px;">
+      <h3 style="font-size:.9rem;margin-bottom:12px;color:var(--text-secondary);font-weight:500;">云同步</h3>
+      <p style="font-size:.8rem;color:var(--text-tertiary);margin-bottom:10px;">输入你的 GitHub Token，设置好后，你和 TA 的数据会通过仓库自动同步。</p>
+      <div class="setting-row">
+        <label>GitHub Token</label>
+        <input type="password" id="syncToken" placeholder="ghp_...">
+      </div>
+      <div class="setting-row">
+        <label>仓库名</label>
+        <input type="text" id="syncRepo" value="lovers-memory" placeholder="repo name">
+      </div>
+      <button class="save-btn" id="saveSync">保存同步配置</button>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="save-btn" id="pullDataBtn" style="flex:1;">⬇ 拉取云端</button>
+        <button class="save-btn" id="pushDataBtn" style="flex:1;">⬆ 推送到云端</button>
+      </div>
+      <p id="syncStatus" style="font-size:.78rem;color:var(--text-tertiary);margin-top:8px;text-align:center;"></p>
+    </div>
+    <div class="settings-card" style="margin-top:16px;">
       <h3 style="font-size:.9rem;margin-bottom:12px;color:var(--text-secondary);font-weight:500;">数据管理</h3>
       <button class="save-btn danger" id="exportData">导出数据</button>
       <button class="save-btn danger" id="clearData" style="margin-top:8px;">清空所有数据</button>
@@ -164,7 +182,8 @@
   </div>
 </div>
 
-<script src="js/app.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/sync.js"></script>
 <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
