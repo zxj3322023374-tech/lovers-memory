@@ -127,6 +127,105 @@ async function pullFromCloud() {
   }
 }
 
+
+// ===== Auto Sync =====
+let autoSyncEnabled = false;
+let lastSyncHash = "";
+let syncTimer = null;
+let pushDebounce = null;
+
+// Get a hash of all current data
+async function getDataHash() {
+  const data = await exportAllData();
+  delete data.lastSync;
+  return btoa(JSON.stringify(data).substring(0, 200));
+}
+
+// Debounced push (wait 3s after last change before pushing)
+function schedulePush() {
+  if (!autoSyncEnabled || !syncConfig.token) return;
+  if (pushDebounce) clearTimeout(pushDebounce);
+  pushDebounce = setTimeout(async () => {
+    const hash = await getDataHash();
+    if (hash !== lastSyncHash) {
+      const result = await pushToCloud();
+      if (result.success) {
+        lastSyncHash = hash;
+        setSyncStatus("已自动同步 " + new Date().toLocaleTimeString("zh-CN"), true);
+      }
+    }
+  }, 3000);
+}
+
+// Periodic pull every 60s
+async function startAutoSync() {
+  if (!autoSyncEnabled || !syncConfig.token) return;
+  
+  // Initial pull on enable
+  const pullResult = await pullFromCloud();
+  if (pullResult.success) {
+    lastSyncHash = await getDataHash();
+    await updateHero();
+    renderPhotos();
+    renderTimeline();
+    renderMessages();
+    setSyncStatus("已连接云端", true);
+  }
+  
+  // Schedule periodic pulls
+  if (syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(async () => {
+    try {
+      await pullFromCloud();
+      const hash = await getDataHash();
+      if (hash !== lastSyncHash) {
+        lastSyncHash = hash;
+        updateHero(); renderPhotos(); renderTimeline(); renderMessages();
+        setSyncStatus("云端有更新", true);
+      }
+    } catch(e) { /* silent */ }
+  }, 60000);
+  
+  // Also pull on page focus
+  window.addEventListener("focus", async () => {
+    if (!autoSyncEnabled) return;
+    try {
+      await pullFromCloud();
+      const hash = await getDataHash();
+      if (hash !== lastSyncHash) {
+        lastSyncHash = hash;
+        updateHero(); renderPhotos(); renderTimeline(); renderMessages();
+      }
+    } catch(e) { /* silent */ }
+  });
+  
+  // Push on page blur
+  window.addEventListener("beforeunload", async () => {
+    if (!autoSyncEnabled) return;
+    await pushToCloud();
+  });
+}
+
+// Hook into app's data flow - patch dbPut to trigger schedulePush
+const _originalDbPut = dbPut;
+dbPut = async function(store, data) {
+  const result = await _originalDbPut(store, data);
+  schedulePush();
+  return result;
+};
+const _originalDbDelete = dbDelete;
+dbDelete = async function(store, id) {
+  const result = await _originalDbDelete(store, id);
+  schedulePush();
+  return result;
+};
+const _originalDbClear = dbClear;
+dbClear = async function(store) {
+  const result = await _originalDbClear(store);
+  schedulePush();
+  return result;
+};
+
 // ===== UI Handlers =====
 let syncAutoInterval = null;
 
@@ -140,6 +239,11 @@ function setSyncStatus(text, ok = true) {
 
 document.addEventListener("DOMContentLoaded", async () => {
   await loadSyncConfig();
+  // Load auto-sync setting
+  autoSyncEnabled = (await loadSettings()).autoSync === "1";
+  const autoSyncCheckbox = document.getElementById("autoSync");
+  if (autoSyncCheckbox) autoSyncCheckbox.checked = autoSyncEnabled;
+  if (autoSyncEnabled) startAutoSync();
   
   // Populate sync UI
   const tokenInput = document.getElementById("syncToken");
@@ -148,7 +252,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (repoInput) repoInput.value = syncConfig.repo || "lovers-memory";
   
   // Save sync config
-  document.getElementById("saveSync").addEventListener("click", async () => {
+  // Auto sync toggle
+const autoSyncCheckbox = document.getElementById("autoSync");
+if (autoSyncCheckbox) {
+  autoSyncCheckbox.checked = autoSyncEnabled;
+  autoSyncCheckbox.addEventListener("change", async () => {
+    autoSyncEnabled = autoSyncCheckbox.checked;
+    await saveSetting("autoSync", autoSyncEnabled ? "1" : "0");
+    if (autoSyncEnabled) {
+      startAutoSync();
+    } else {
+      if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+      setSyncStatus("已关闭自动同步", true);
+    }
+  });
+}
+
+document.getElementById("saveSync").addEventListener("click", async () => {
     syncConfig.token = document.getElementById("syncToken").value.trim();
     syncConfig.repo = document.getElementById("syncRepo").value.trim() || "lovers-memory";
     await saveSetting("syncToken", syncConfig.token);
@@ -177,3 +297,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+
