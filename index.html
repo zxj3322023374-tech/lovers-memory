@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我们的回忆</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#8b7a6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- ===== Hero Cover ===== -->
+  <header id="hero">
+    <div class="hero-bg" id="heroBg">
+      <video class="hero-video" id="heroVideo" loop muted playsinline></video>
+      <div class="hero-overlay"></div>
+      <div class="hero-bg-hint" id="heroBgHint">双击更换背景（图片/视频）</div>
+    </div>
+    <div class="hero-content">
+     <div class="hero-names" id="heroNames">
+       <span class="name" id="name1">你</span>
+        <span class="divider-dot">&#x2022;</span>
+       <span class="name" id="name2">TA</span>
+      </div>
+      <div class="hero-counter">
+        <span class="counter-label">在一起</span>
+        <span class="counter-days" id="daysCount">0</span>
+        <span class="counter-label">天</span>
+      </div>
+      <div class="hero-anniv" id="annivDisplay">2025-01-01</div>
+      <div class="hero-countdown" id="countdownArea">
+        <div class="countdown-label">下一个纪念日</div>
+        <div class="countdown-name" id="countdownName">一周年</div>
+        <div class="countdown-days" id="countdownDays">365</div>
+        <div class="countdown-sub" id="countdownSub">天后到来</div>
+      </div>
+    </div>
+    <div class="scroll-hint">&#x2193;</div>
+  </header>
+
+  <!-- ===== Navigation ===== -->
+  <nav id="tabs">
+    <button class="tab active" data-tab="photos">照片</button>
+    <button class="tab" data-tab="timeline">时光</button>
+    <button class="tab" data-tab="messages">留言</button>
+    <button class="tab" data-tab="settings">设置</button>
+  </nav>
+
+  <!-- ===== Photo Wall ===== -->
+  <section class="tab-content active" id="tab-photos">
+    <div class="section-header">
+      <h2>照片墙</h2>
+      <label class="upload-btn">
+        <input type="file" accept="image/*" id="photoInput" hidden>
+        <span>+ 上传</span>
+      </label>
+    </div>
+    <div class="photo-grid" id="photoGrid">
+      <div class="empty-state" id="photoEmpty">
+        <div class="empty-state-icon">📷</div>
+        <p>还没有照片，点击上方按钮或拖拽图片到此处上传吧</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Timeline ===== -->
+  <section class="tab-content" id="tab-timeline">
+    <div class="section-header">
+      <h2>时光轴</h2>
+      <button class="add-btn" id="addTimelineBtn">+ 记录</button>
+    </div>
+    <div class="timeline" id="timelineContainer">
+      <div class="empty-state" id="timelineEmpty">
+        <div class="empty-state-icon">&#x2500;</div>
+        <p>还没有记录，开始记录你们的珍贵时刻吧</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Messages ===== -->
+  <section class="tab-content" id="tab-messages">
+    <div class="section-header">
+      <h2>留言板</h2>
+    </div>
+    <div class="msg-input-area">
+      <textarea id="msgInput" placeholder="写一句想对 TA 说的话..." rows="2"></textarea>
+      <button id="msgSendBtn" class="send-btn">发送</button>
+    </div>
+    <div class="msg-list" id="msgList">
+      <div class="empty-state" id="msgEmpty">
+        <div class="empty-state-icon">&#x2500;</div>
+        <p>还没有留言，写第一句情话吧</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Settings ===== -->
+  <section class="tab-content" id="tab-settings">
+    <div class="section-header">
+      <h2>设置</h2>
+    </div>
+    <div class="settings-card">
+      <div class="setting-row">
+        <label>你的名字</label>
+        <input type="text" id="setName1" placeholder="你的名字">
+      </div>
+      <div class="setting-row">
+        <label>TA的名字</label>
+        <input type="text" id="setName2" placeholder="TA的名字">
+      </div>
+      <div class="setting-row">
+        <label>在一起的日子</label>
+        <input type="date" id="setAnniv">
+      </div>
+      <button class="save-btn" id="saveSettings">保存设置</button>
+    </div>
+    <div class="settings-card" style="margin-top:16px;">
+      <h3 style="font-size:.9rem;margin-bottom:12px;color:var(--text-secondary);font-weight:500;">云同步</h3>
+      <p style="font-size:.8rem;color:var(--text-tertiary);margin-bottom:10px;">输入你的 GitHub Token，设置好后，你和 TA 的数据会通过仓库自动同步。</p>
+      <div class="setting-row">
+        <label>GitHub Token</label>
+        <input type="password" id="syncToken" placeholder="ghp_...">
+      </div>
+      <div class="setting-row">
+        <label>仓库名</label>
+        <input type="text" id="syncRepo" value="lovers-memory" placeholder="repo name">
+      </div>
+      <div class="setting-row" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="autoSync" style="width:auto;">
+        <label style="margin:0;cursor:pointer;">开启自动同步</label>
+      </div>
+      <button class="save-btn" id="saveSync">保存同步配置</button>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="save-btn" id="pullDataBtn" style="flex:1;">⬇ 拉取云端</button>
+        <button class="save-btn" id="pushDataBtn" style="flex:1;">⬆ 推送到云端</button>
+      </div>
+      <p id="syncStatus" style="font-size:.78rem;color:var(--text-tertiary);margin-top:8px;text-align:center;"></p>
+    </div>
+    <div class="settings-card" style="margin-top:16px;">
+      <h3 style="font-size:.9rem;margin-bottom:12px;color:var(--text-secondary);font-weight:500;">数据管理</h3>
+      <button class="save-btn danger" id="exportData">导出数据</button>
+      <button class="save-btn danger" id="clearData" style="margin-top:8px;">清空所有数据</button>
+    </div>
+  </section>
+</div>
+
+<!-- ===== Modals ===== -->
+<div class="modal-overlay" id="photoModal">
+  <div class="modal-content modal-photo">
+    <span class="modal-close">&times;</span>
+    <img id="modalPhotoImg" src="" alt="">
+    <div class="modal-photo-info">
+      <div class="modal-photo-caption" id="modalPhotoCaption"></div>
+      <div class="modal-photo-time" id="modalPhotoTime"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="timelineModal">
+  <div class="modal-content modal-timeline">
+    <span class="modal-close">&times;</span>
+    <h3 id="tlModalTitle">记录事件</h3>
+    <div class="modal-form">
+      <input type="date" id="tlDate">
+      <input type="text" id="tlTitle" placeholder="事件标题">
+      <textarea id="tlDesc" placeholder="详细描述..." rows="3"></textarea>
+      <div class="modal-actions">
+        <button class="save-btn" id="tlSaveBtn">保存</button>
+        <button class="save-btn danger" id="tlDeleteBtn" style="display:none;">删除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editModal">
+  <div class="modal-content modal-edit">
+    <span class="modal-close">&times;</span>
+    <h3>编辑照片</h3>
+    <div class="modal-form">
+      <textarea id="editCaption" placeholder="写一段描述..." rows="3"></textarea>
+      <button class="save-btn" id="editSaveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+  <script src="js/app.js"></script>
+  <script src="js/sync.js"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+</body>
+</html>
